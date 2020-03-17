@@ -2,7 +2,9 @@
 
 namespace Laravel\Airlock;
 
+use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
+use Illuminate\Contracts\Auth\UserProvider;
 use Illuminate\Http\Request;
 
 class Guard
@@ -40,12 +42,12 @@ class Guard
      * @param  \Illuminate\Http\Request  $request
      * @return mixed
      */
-    public function __invoke(Request $request)
+    public function __invoke(Request $request, $provider = null)
     {
         if ($user = $this->auth->guard('web')->user()) {
             return $this->supportsTokens($user)
-                        ? $user->withAccessToken(new TransientToken)
-                        : $user;
+                ? $user->withAccessToken(new TransientToken)
+                : $user;
         }
 
         if ($token = $request->bearerToken()) {
@@ -53,15 +55,23 @@ class Guard
 
             $accessToken = $model::where('token', hash('sha256', $token))->first();
 
-            if (! $accessToken ||
+            if (
+                !$accessToken ||
                 ($this->expiration &&
-                 $accessToken->created_at->lte(now()->subMinutes($this->expiration)))) {
+                    $accessToken->created_at->lte(now()->subMinutes($this->expiration)))
+            ) {
                 return;
             }
 
-            return $this->supportsTokens($accessToken->tokenable) ? $accessToken->tokenable->withAccessToken(
+            $tokenable =  $this->supportsTokens($accessToken->tokenable) ? $accessToken->tokenable->withAccessToken(
                 tap($accessToken->forceFill(['last_used_at' => now()]))->save()
             ) : null;
+
+            if ($tokenable && $provider) {
+                return $this->validateAgainstProvider($tokenable, $provider);
+            }
+
+            return $tokenable;
         }
     }
 
@@ -76,5 +86,19 @@ class Guard
         return in_array(HasApiTokens::class, class_uses_recursive(
             $tokenable ? get_class($tokenable) : null
         ));
+    }
+
+    /**
+     * Validate tokenable against user provider
+     *
+     * @param Authenticatable $tokenable
+     * @param UserProvider $provider
+     * @return bool
+     */
+    protected function validateAgainstProvider(Authenticatable $tokenable, UserProvider $provider)
+    {
+        $model = $provider->retrieveById($tokenable->getAuthIdentifier());
+
+        return $model && get_class($model) === get_class($tokenable) ? $tokenable :  null;
     }
 }

@@ -2,6 +2,7 @@
 
 namespace Laravel\Airlock;
 
+use Illuminate\Auth\RequestGuard;
 use Illuminate\Contracts\Http\Kernel;
 use Illuminate\Support\Facades\Auth;
 use Illuminate\Support\Facades\Route;
@@ -25,8 +26,8 @@ class AirlockServiceProvider extends ServiceProvider
             ], config('auth.guards.airlock', [])),
         ]);
 
-        if (! $this->app->configurationIsCached()) {
-            $this->mergeConfigFrom(__DIR__.'/../config/airlock.php', 'airlock');
+        if (!$this->app->configurationIsCached()) {
+            $this->mergeConfigFrom(__DIR__ . '/../config/airlock.php', 'airlock');
         }
     }
 
@@ -41,11 +42,11 @@ class AirlockServiceProvider extends ServiceProvider
             $this->registerMigrations();
 
             $this->publishes([
-                __DIR__.'/../database/migrations' => database_path('migrations'),
+                __DIR__ . '/../database/migrations' => database_path('migrations'),
             ], 'airlock-migrations');
 
             $this->publishes([
-                __DIR__.'/../config/airlock.php' => config_path('airlock.php'),
+                __DIR__ . '/../config/airlock.php' => config_path('airlock.php'),
             ], 'airlock-config');
         }
 
@@ -62,7 +63,7 @@ class AirlockServiceProvider extends ServiceProvider
     protected function registerMigrations()
     {
         if (Airlock::shouldRunMigrations()) {
-            return $this->loadMigrationsFrom(__DIR__.'/../database/migrations');
+            return $this->loadMigrationsFrom(__DIR__ . '/../database/migrations');
         }
     }
 
@@ -80,7 +81,7 @@ class AirlockServiceProvider extends ServiceProvider
         Route::group(['prefix' => config('airlock.prefix', 'airlock')], function () {
             Route::get(
                 '/csrf-cookie',
-                CsrfCookieController::class.'@show'
+                CsrfCookieController::class . '@show'
             )->middleware('web');
         });
     }
@@ -93,7 +94,17 @@ class AirlockServiceProvider extends ServiceProvider
     protected function configureGuard()
     {
         Auth::resolved(function ($auth) {
-            $auth->viaRequest('airlock', new Guard($auth, config('airlock.expiration')));
+            $auth->extend('airlock', function ($app, $name, array $config) use ($auth) {
+                $guard = new RequestGuard(
+                    new Guard($auth, config('airlock.expiration')),
+                    $app['request'],
+                    $auth->createUserProvider($config['provider'])
+                );
+
+                $app->refresh('request', $guard, 'setRequest');
+
+                return $guard;
+            });
         });
     }
 
