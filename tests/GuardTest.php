@@ -44,8 +44,8 @@ class GuardTest extends TestCase
         $webGuard = Mockery::mock(stdClass::class);
 
         $factory->shouldReceive('guard')
-                ->with('web')
-                ->andReturn($webGuard);
+            ->with('web')
+            ->andReturn($webGuard);
 
         $webGuard->shouldReceive('user')->once()->andReturn($fakeUser = new User);
 
@@ -66,8 +66,8 @@ class GuardTest extends TestCase
         $webGuard = Mockery::mock(stdClass::class);
 
         $factory->shouldReceive('guard')
-                ->with('web')
-                ->andReturn($webGuard);
+            ->with('web')
+            ->andReturn($webGuard);
 
         $webGuard->shouldReceive('user')->once()->andReturn(null);
 
@@ -91,8 +91,8 @@ class GuardTest extends TestCase
         $webGuard = Mockery::mock(stdClass::class);
 
         $factory->shouldReceive('guard')
-                ->with('web')
-                ->andReturn($webGuard);
+            ->with('web')
+            ->andReturn($webGuard);
 
         $webGuard->shouldReceive('user')->once()->andReturn(null);
 
@@ -131,8 +131,8 @@ class GuardTest extends TestCase
         $webGuard = Mockery::mock(stdClass::class);
 
         $factory->shouldReceive('guard')
-                ->with('web')
-                ->andReturn($webGuard);
+            ->with('web')
+            ->andReturn($webGuard);
 
         $webGuard->shouldReceive('user')->once()->andReturn(null);
 

@@ -59,6 +59,6 @@ class EnsureFrontendRequestsAreStateful
         $referer = Str::replaceFirst('http://', '', $referer);
 
         return Str::startsWith($referer, config('airlock.stateful', [])) ||
-               Str::is(config('airlock.stateful', []), $referer);
+            Str::is(config('airlock.stateful', []), $referer);
     }
 }

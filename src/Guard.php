@@ -2,6 +2,8 @@
 
 namespace Laravel\Airlock;
 
+use Illuminate\Auth\DatabaseUserProvider;
+use Illuminate\Auth\EloquentUserProvider;
 use Illuminate\Contracts\Auth\Authenticatable;
 use Illuminate\Contracts\Auth\Factory as AuthFactory;
 use Illuminate\Contracts\Auth\UserProvider;
@@ -97,8 +99,14 @@ class Guard
      */
     protected function validateAgainstProvider(Authenticatable $tokenable, UserProvider $provider)
     {
+        if ($provider instanceof EloquentUserProvider) {
+            return $provider->getModel() === get_class($tokenable);
+        }
+
         $model = $provider->retrieveById($tokenable->getAuthIdentifier());
 
-        return $model && get_class($model) === get_class($tokenable) ? $tokenable :  null;
+        return ($model &&
+            get_class($model) === get_class($tokenable) &&
+            $model->getAuthIdentifier() === $tokenable->getAuthIdentifier()) ? $tokenable :  null;
     }
 }
